@@ -63,14 +63,16 @@ The best-performing model per dimension was selected.
 
 ---
 
-## 🛠️ Tech Stack
+- ## 🛠️ Tech Stack
 
-- 🤖 **scikit-learn** — modeling and grid search
-- 📚 **nltk / spaCy** — tokenization, lemmatization, NER
-- 💭 **TextBlob** — sentiment and polarity scoring
+- 🐼 **pandas / numpy** — data manipulation and numerical computing
+- 📊 **matplotlib / seaborn** — visualization
+- 📚 **nltk / spaCy** — tokenization, lemmatization, sentiment analysis (VADER), stopword removal
+- 🔢 **scikit-learn** — TF-IDF vectorization, modeling, grid search, evaluation
+- ⚖️ **imbalanced-learn** — SMOTE oversampling and random undersampling
+- 🚀 **XGBoost** — gradient boosted classifier (evaluated alongside sklearn models)
 - ⚡ **FastAPI** — API and interface
 - 🤗 **Hugging Face Spaces** — deployment
-
 ---
 
 ## 📚 References
