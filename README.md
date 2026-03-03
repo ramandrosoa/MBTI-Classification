@@ -70,7 +70,6 @@ The best-performing model per dimension was selected.
 - 📚 **nltk / spaCy** — tokenization, lemmatization, sentiment analysis (VADER), stopword removal
 - 🔢 **scikit-learn** — TF-IDF vectorization, modeling, grid search, evaluation
 - ⚖️ **imbalanced-learn** — SMOTE oversampling and random undersampling
-- 🚀 **XGBoost** — gradient boosted classifier (evaluated alongside sklearn models)
 - ⚡ **FastAPI** — API and interface
 - 🤗 **Hugging Face Spaces** — deployment
 ---
