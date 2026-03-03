@@ -1,0 +1,10 @@
+pandas==1.5.3
+spacy==3.8.11
+numpy==1.23.5
+nltk==3.8.1
+scikit-learn==1.2.1
+fastapi
+uvicorn
+aiofiles
+
+requests

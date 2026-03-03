@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MBTI Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080810;
+      --surface: #0e0e1c;
+      --surface2: #13132a;
+      --border: rgba(255,255,255,0.06);
+      --border-active: rgba(160,130,255,0.35);
+      --text: #d8d5f0;
+      --text-muted: #5a5878;
+      --text-dim: #7e7a9a;
+      --accent: #9d7eff;
+      --accent2: #5eb8ff;
+      --accent3: #ff7eb3;
+      --green: #4fffb0;
+      --glow: rgba(157,126,255,0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Atmospheric background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 10%, rgba(100,60,200,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(30,80,200,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 30% at 60% 30%, rgba(200,80,150,0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: -50%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 56px;
+    }
+
+    .eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 1rem;
+      font-weight: 300;
+      max-width: 420px;
+      line-height: 1.65;
+    }
+
+    /* Examples */
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .examples-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+
+    .example-chip {
+      padding: 7px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+    }
+
+    .example-chip:hover {
+      border-color: var(--border-active);
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    .example-chip.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(157,126,255,0.08);
+    }
+
+    /* Input area */
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 220px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 300;
+      line-height: 1.7;
+      padding: 20px 22px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    textarea:focus {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 4px rgba(157,126,255,0.06), inset 0 0 40px rgba(157,126,255,0.02);
+    }
+
+    textarea::placeholder { color: var(--text-muted); font-style: italic; }
+
+    .char-count {
+      position: absolute;
+      bottom: 14px;
+      right: 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    .char-count.ready { color: var(--green); }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 15px 24px;
+      background: linear-gradient(135deg, #6d40e0 0%, #3a6fd8 100%);
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      letter-spacing: 0.02em;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      padding: 15px 20px;
+      background: var(--surface);
+      color: var(--text-dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: none;
+    }
+
+    .btn-ghost:hover { border-color: var(--border-active); color: var(--text); }
+
+    /* Alerts */
+    .alert {
+      display: none;
+      padding: 13px 18px;
+      border-radius: 10px;
+      font-size: 0.87rem;
+      margin-top: 14px;
+      line-height: 1.5;
+    }
+
+    .alert-warn {
+      background: rgba(255,190,50,0.08);
+      border: 1px solid rgba(255,190,50,0.2);
+      color: #fcd34d;
+    }
+
+    .alert-error {
+      background: rgba(255,80,80,0.08);
+      border: 1px solid rgba(255,80,80,0.2);
+      color: #fca5a5;
+    }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      margin-top: 32px;
+      text-align: center;
+    }
+
+    .spinner-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--text-dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+    }
+
+    .spinner-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .spinner-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .spinner-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .spinner-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Result */
+    .result-section {
+      display: none;
+      margin-top: 48px;
+      animation: fadeUp 0.5s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-hero {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .result-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .mbti-type {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(3.5rem, 10vw, 6rem);
+      letter-spacing: 0.08em;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .mbti-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--green);
+      border: 1px solid rgba(79,255,176,0.25);
+      padding: 5px 12px;
+      border-radius: 99px;
+      margin-bottom: 8px;
+      background: rgba(79,255,176,0.05);
+      align-self: center;
+    }
+
+    .divider-line {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 32px 0;
+    }
+
+    /* Dimension cards */
+    .dims-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .dims-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .dim-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .dim-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .dim-card:hover { border-color: var(--border-active); }
+    .dim-card:hover::before { opacity: 1; }
+
+    .dim-axis {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .dim-letter {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.4rem;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+    }
+
+    .bar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      height: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .dim-stats {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    .dim-stats .winner {
+      color: var(--text);
+    }
+
+    /* Notebook link */
+    .notebook-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      letter-spacing: 0.03em;
+      transition: color 0.2s;
+      border-bottom: 1px dashed rgba(255,255,255,0.08);
+      padding-bottom: 2px;
+    }
+
+    .notebook-link:hover { color: var(--accent2); border-bottom-color: var(--accent2); }
+    .notebook-link svg { flex-shrink: 0; }
+
+    /* Type info card */
+    .type-info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      margin-top: 28px;
+      margin-bottom: 0;
+    }
+
+    .type-info-header {
+      margin-bottom: 24px;
+    }
+
+    .type-info-nickname {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      color: #fff;
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+
+    .type-info-desc {
+      font-size: 0.93rem;
+      color: var(--text-dim);
+      line-height: 1.75;
+      font-weight: 300;
+    }
+
+    .famous-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .famous-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 13px 6px 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .famous-emoji {
+      font-size: 0.95rem;
+    }
+
+    /* Footer note */
+    .footer-note {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="eyebrow">Personality Analysis · NLP</div>
+    <h1>Decode your<br><em>personality type.</em></h1>
+    <p class="subtitle">Write freely. My NLP model will predict which of the 16 types matches your language patterns.</p>
+  </header>
+
+  <!-- Examples -->
+  <div class="section-label">Try an example</div>
+  <div class="examples-grid">
+    <div class="example-chip" onclick="loadExample(this, 'me')">👋 Hello!</div>
+    <div class="example-chip" onclick="loadExample(this, 'valentine')">🍰 Valentine's Baking</div>
+    <div class="example-chip" onclick="loadExample(this, 'logic')">🤖 Logic Over Feelings</div>
+    <div class="example-chip" onclick="loadExample(this, 'kitten')">🐱 Kitten lullaby</div>
+    <div class="example-chip" onclick="loadExample(this, 'jazz')">🎵 Genre Debates</div>
+    <div class="example-chip" onclick="loadExample(this, 'hero')">🎭 Narrative Misconceptions</div>
+
+  </div>
+
+  <!-- Input -->
+  <div class="input-wrapper">
+    <textarea id="userText" placeholder="Write your thoughts here — be as candid and natural as possible…" oninput="updateCount()"></textarea>
+    <div class="char-count" id="charCount">0 / 250</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-primary" id="predictBtn" onclick="predict()">Analyze text →</button>
+    <button class="btn-ghost" id="resetBtn" onclick="resetForm()">↺ Reset</button>
+  </div>
+
+  <a class="notebook-link" href="https://github.com/ramandrosoa/MBTI-Classification/blob/main/README.md" target="_blank" rel="noopener">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Curious how it works? View the source notebook → 
+  </a>
+
+  <div class="alert alert-warn" id="warning">Please enter some text before analyzing.</div>
+  <div class="alert alert-error" id="error"></div>
+
+  <!-- Spinner -->
+  <div class="spinner" id="spinner">
+    <div class="spinner-inner">
+      <div class="spinner-dots">
+        <span></span><span></span><span></span>
+      </div>
+      Analyzing patterns
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-section" id="resultSection">
+    <div class="result-label">Predicted MBTI type</div>
+    <div class="result-hero">
+      <div class="mbti-type" id="mbtiType"></div>
+      <div class="mbti-tag" id="mbtiTag">✓ Prediction ready</div>
+    </div>
+
+    <!-- Type description card -->
+    <div class="type-info-card" id="typeInfoCard">
+      <div class="type-info-header">
+        <div class="type-info-nickname" id="typeNickname"></div>
+        <div class="type-info-desc" id="typeDesc"></div>
+      </div>
+      <div class="famous-section">
+        <div class="section-label" style="margin-bottom:14px;">Notable people with this type</div>
+        <div class="famous-grid" id="famousGrid"></div>
+      </div>
+    </div>
+
+    <div class="divider-line"></div>
+
+    <div class="section-label">Dimension breakdown</div>
+    <div class="dims-grid" id="dimsGrid"></div>
+
+    <p class="footer-note">
+      Results are probabilistic, not definitive. MBTI is a framework for self-understanding — treat these scores as signals, not verdicts. The model was trained on English text from self-identified MBTI users.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  const MIN_LENGTH = 250;
+
+  const mbtiInfo = {
+    INTJ: {
+      nickname: 'The Architect',
+      desc: 'Imaginative and strategic, INTJs have a plan for everything. They combine an iron will with relentless self-improvement, pursuing their vision of the future with uncommon clarity. Often the most independent of all types, they prize competence above nearly everything.',
+      famous: [
+        { name: 'Elon Musk', emoji: '🚀' }, { name: 'Nikola Tesla', emoji: '⚡' },
+        { name: 'Friedrich Nietzsche', emoji: '📖' }, { name: 'Michelle Obama', emoji: '🌟' },
+        { name: 'Christopher Nolan', emoji: '🎬' }
+      ]
+    },
+    INTP: {
+      nickname: 'The Logician',
+      desc: 'INTPs are endlessly curious minds in love with theories and ideas. They excel at reading between the lines and building abstract frameworks, but often struggle to bring their visions into reality. They prize intellectual honesty above social harmony.',
+      famous: [
+        { name: 'Albert Einstein', emoji: '🔬' }, { name: 'Bill Gates', emoji: '💻' },
+        { name: 'Charles Darwin', emoji: '🌿' }, { name: 'Tina Fey', emoji: '😂' },
+        { name: 'Larry Page', emoji: '🔍' }
+      ]
+    },
+    ENTJ: {
+      nickname: 'The Commander',
+      desc: 'Bold, imaginative and strong-willed, ENTJs see every obstacle as a challenge to overcome. Natural leaders who quickly spot inefficiencies, they galvanize people around a vision and drive hard toward every goal they set.',
+      famous: [
+        { name: 'Steve Jobs', emoji: '🍎' }, { name: 'Gordon Ramsay', emoji: '👨‍🍳' },
+        { name: 'Margaret Thatcher', emoji: '🇬🇧' }, { name: 'Adele', emoji: '🎵' },
+        { name: 'Julius Caesar', emoji: '⚔️' }
+      ]
+    },
+    ENTP: {
+      nickname: 'The Debater',
+      desc: 'Quick, ingenious, and stimulating — ENTPs love nothing more than a good argument. They thrive on mental sparring and are drawn to novel ideas. Though they\'re brilliant brainstormers, they can lose interest once the initial challenge fades.',
+      famous: [
+        { name: 'Mark Twain', emoji: '✍️' }, { name: 'Tom Hanks', emoji: '🎭' },
+        { name: 'Socrates', emoji: '🏛️' }, { name: 'Sacha Baron Cohen', emoji: '😄' },
+        { name: 'Leonardo da Vinci', emoji: '🎨' }
+      ]
+    },
+    INFJ: {
+      nickname: 'The Advocate',
+      desc: 'Rare and idealistic, INFJs combine a deep empathy for others with a quiet, determined pursuit of their values. They see the world as it could be, not just as it is — and often inspire others without seeking the spotlight.',
+      famous: [
+        { name: 'Martin Luther King Jr.', emoji: '✊' }, { name: 'Simone de Beauvoir', emoji: '📚' },
+        { name: 'Taylor Swift', emoji: '🎶' }, { name: 'Nelson Mandela', emoji: '🕊️' },
+        { name: 'Fyodor Dostoevsky', emoji: '📜' }
+      ]
+    },
+    INFP: {
+      nickname: 'The Mediator',
+      desc: 'Poetic and idealistic, INFPs are guided by their personal values and a deep longing for authenticity. They are empathetic dreamers who feel deeply, express vividly, and often dedicate themselves to causes larger than themselves.',
+      famous: [
+        { name: 'William Shakespeare', emoji: '📖' }, { name: 'J.R.R. Tolkien', emoji: '🧙' },
+        { name: 'Princess Diana', emoji: '👑' }, { name: 'Björk', emoji: '🎵' },
+        { name: 'Johnny Depp', emoji: '🎬' }
+      ]
+    },
+    ENFJ: {
+      nickname: 'The Protagonist',
+      desc: 'Charismatic and inspiring, ENFJs are natural-born leaders who see potential in everyone. They are warm, passionate advocates who bring people together, often placing others\' needs before their own.',
+      famous: [
+        { name: 'Barack Obama', emoji: '🌎' }, { name: 'Oprah Winfrey', emoji: '🌟' },
+        { name: 'Malala Yousafzai', emoji: '✊' }, { name: 'Michael Jordan', emoji: '🏀' },
+        { name: 'Jennifer Lawrence', emoji: '🎬' }
+      ]
+    },
+    ENFP: {
+      nickname: 'The Campaigner',
+      desc: 'Enthusiastic, creative, and sociable ENFPs find a connection everywhere they look. Free spirits with a people-first attitude, they live by imagination and inspiration — and have a rare gift for rallying others to a cause.',
+      famous: [
+        { name: 'Robin Williams', emoji: '😄' }, { name: 'Mark Twain', emoji: '✍️' },
+        { name: 'Walt Disney', emoji: '🏰' }, { name: 'Ellen DeGeneres', emoji: '💛' },
+        { name: 'Cher', emoji: '🎤' }
+      ]
+    },
+    ISTJ: {
+      nickname: 'The Logistician',
+      desc: 'Reliable, practical, and dutiful, ISTJs are the backbone of many families and organizations. They prize tradition and order, approaching life with methodical precision and a profound sense of responsibility.',
+      famous: [
+        { name: 'Jeff Bezos', emoji: '📦' }, { name: 'Queen Elizabeth II', emoji: '👑' },
+        { name: 'George Washington', emoji: '🇺🇸' }, { name: 'Natalie Portman', emoji: '🎬' },
+        { name: 'Warren Buffett', emoji: '💼' }
+      ]
+    },
+    ISFJ: {
+      nickname: 'The Defender',
+      desc: 'Dedicated and warm, ISFJs are true altruists, meeting kindness with kindness and diligence with more diligence. They remember the smallest details about people they care about, creating bonds of quiet loyalty.',
+      famous: [
+        { name: 'Mother Teresa', emoji: '🕊️' }, { name: 'Kate Middleton', emoji: '👑' },
+        { name: 'Beyoncé', emoji: '🎵' }, { name: 'Vin Diesel', emoji: '🚗' },
+        { name: 'Rosa Parks', emoji: '✊' }
+      ]
+    },
+    ESTJ: {
+      nickname: 'The Executive',
+      desc: 'ESTJs are facts-first individuals who value order, tradition, and the rule of law. Decisive and hardworking, they excel at creating and enforcing systems, and take great pride in bringing people together around a common goal.',
+      famous: [
+        { name: 'Judge Judy', emoji: '⚖️' }, { name: 'Frank Sinatra', emoji: '🎤' },
+        { name: 'Michelle Obama', emoji: '🌟' }, { name: 'Sonia Sotomayor', emoji: '🏛️' },
+        { name: 'Henry Ford', emoji: '🚙' }
+      ]
+    },
+    ESFJ: {
+      nickname: 'The Consul',
+      desc: 'Caring, sociable and popular, ESFJs are attuned to others\' emotions and go out of their way to create harmony. They invest deeply in the wellbeing of their community and thrive when the people they love are happy.',
+      famous: [
+        { name: 'Taylor Swift', emoji: '🎶' }, { name: 'Bill Clinton', emoji: '🇺🇸' },
+        { name: 'Tyra Banks', emoji: '💅' }, { name: 'Steve Harvey', emoji: '😄' },
+        { name: 'Jennifer Garner', emoji: '🎬' }
+      ]
+    },
+    ISTP: {
+      nickname: 'The Virtuoso',
+      desc: 'Bold and practical experimenters, ISTPs live in the world of tools and mechanics. They have a natural instinct for how things work, and an ease with moving from observation to action that few other types can match.',
+      famous: [
+        { name: 'Clint Eastwood', emoji: '🤠' }, { name: 'Michael Jordan', emoji: '🏀' },
+        { name: 'Amelia Earhart', emoji: '✈️' }, { name: 'Bruce Lee', emoji: '🥋' },
+        { name: 'Scarlett Johansson', emoji: '🎬' }
+      ]
+    },
+    ISFP: {
+      nickname: 'The Adventurer',
+      desc: 'Charming, sensitive, and spontaneous, ISFPs are true artists whose primary medium is often their own life. They live in the present and are acutely attuned to beauty and sensation, finding meaning in small, vivid moments.',
+      famous: [
+        { name: 'Michael Jackson', emoji: '🎵' }, { name: 'Britney Spears', emoji: '🌟' },
+        { name: 'David Bowie', emoji: '🎸' }, { name: 'Lana Del Rey', emoji: '🌹' },
+        { name: 'Frida Kahlo', emoji: '🎨' }
+      ]
+    },
+    ESTP: {
+      nickname: 'The Entrepreneur',
+      desc: 'Smart, energetic, and perceptive, ESTPs make a direct impact on the world around them. They live in the fast lane, preferring action to long deliberation and reading every room they walk into with uncanny accuracy.',
+      famous: [
+        { name: 'Donald Trump', emoji: '📢' }, { name: 'Madonna', emoji: '🎤' },
+        { name: 'Ernest Hemingway', emoji: '✍️' }, { name: 'Jack Nicholson', emoji: '🎬' },
+        { name: 'Meryl Streep', emoji: '🌟' }
+      ]
+    },
+    ESFP: {
+      nickname: 'The Entertainer',
+      desc: 'Spontaneous, energetic and enthusiastic, ESFPs love life and the people in it. They live in the spotlight and make every situation a little more exciting — bringing joy, style, and a contagious zest for experience.',
+      famous: [
+        { name: 'Marilyn Monroe', emoji: '💋' }, { name: 'Adele', emoji: '🎵' },
+        { name: 'Jamie Oliver', emoji: '👨‍🍳' }, { name: 'Miley Cyrus', emoji: '🌟' },
+        { name: 'Katy Perry', emoji: '🎤' }
+      ]
+    }
+  };
+
+  const examples = {
+    me: `Hello! welcome to my app. I built this using classical NLP techniques: manual feature engineering and training on sklearn classifiers without relying on any LLM or pre-trained model. I'm not sure if the predictions are accurate enough, but from my rough understanding of mbti, I think some texts seem to belong to a type. I'm actually somewhere between xntp and xstp , maybe even intj lol. Well I'm going to write enough words for the prediction and see if the result will match one of them. By the way, how was your day? I guess you didn't end up reading this by accident so I hope you are doing fine.`,
+    valentine: `The smell of baked goods (and love) is in the air! What are you baking for your favourite people this Valentine's Day? I know I'll be making (it's not really baking) strawberries dipped in chocolate for my best friend, lots of muffins and banana bread for my boyfriend. Have any traditions? Something you always make for that special someone? Something you make for yourself because loving and treating yourself is just as special and important as doing it for others? Feel free to share, discuss or whatever your heart desires, things you are baking or making this February 14th!`,
+    kitten: `I successfully made both of my cats Lauvers and just listened to this with my youngest. She immediately got comfortable on my chest and positioned her head closer to my phone’s speaker before promptly drifting off to sleep. Thank you Laufey for the new wonderful kitten approved lullaby <333`,
+    jazz: `She's clearly listened to a lot of Chet Baker since she uses a lot of the same bebop language in her (non-improvised) scat. She also uses the harmonic language of mid 20th century popular music and film score (there's a lot of Disney in there). Also she graduated from Berklee so there's that… Feel free to call her "not jazz" but she has clearly listened to and assimilated many of the tropes and cliches of jazz. Personally I just don't understand the hate from some quarters. I think her music is less generic than most pop (yes Ed Sheeran I'm looking at you).`,
+    hero: `You would think it’s simple: Light is villain (evil) and a protagonist (main character). L is a “hero” (good guy…although technically he’s more of an antihero than anything else) and an antagonist (the character who opposes the protagonist). The problem is that people think villains can’t be the main character and heroes can’t be antagonists. General education drills into us “protagonist = good guy, antagonist = bad guy” which is just a complete misunderstanding of the terms. They may have meant that at some point, but words and their definitions evolve over time. Sucks that most education systems never consider that.`,
+    logic: `if you ask me how i personally feel about a situation, ill evaluate it logically and then connect that to how it would have probably felt for whoever was in that situation. whenever im talking to my friends about stuff and situations ive been through its almost always just the facts and why i logically made the choices i did. if you pushed me on it i would say i do have super strong morals but they're just logical and not based on my personal feelings. when people attack my "personal character" (people have called me 'fake' before lol) i don't care at all and i just get annoyed because that's such a non-argument and it ignores whatever my point was.`
+  };
+
+  function updateCount() {
+    const len = document.getElementById('userText').value.trim().length;
+    const el = document.getElementById('charCount');
+    el.textContent = `${len} / 250`;
+    el.className = 'char-count' + (len >= MIN_LENGTH ? ' ready' : '');
+  }
+
+  function loadExample(chip, key) {
+    document.getElementById('userText').value = examples[key];
+    updateCount();
+    document.querySelectorAll('.example-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    resetUI();
+  }
+
+  function resetUI() {
+    document.getElementById('warning').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('dimsGrid').innerHTML = '';
+    document.getElementById('typeInfoCard').style.display = 'none';
+  }
+
+  function resetForm() {
+    document.getElementById('userText').value = '';
+    updateCount();
+    document.querySelectorAll('.example-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('predictBtn').style.display = 'block';
+    document.getElementById('resetBtn').style.display = 'none';
+    resetUI();
+  }
+
+  function detectLanguage(text) {
+    const englishWords = ['the','is','are','was','were','and','or','but','in','on','at','to','for','of','a','an','it','not','this','that','with','be'];
+    const words = text.toLowerCase().split(/\s+/);
+    const matchCount = words.filter(w => englishWords.includes(w)).length;
+    return (matchCount / words.length) >= 0.05;
+  }
+
+  async function predict() {
+    const text    = document.getElementById('userText').value;
+    const warning = document.getElementById('warning');
+    const error   = document.getElementById('error');
+    const spinner = document.getElementById('spinner');
+    const btn     = document.getElementById('predictBtn');
+
+    resetUI();
+
+    if (!text.trim()) { warning.style.display = 'block'; return; }
+    if (text.trim().length < MIN_LENGTH) {
+      const rem = MIN_LENGTH - text.trim().length;
+      error.textContent = `Your text is too short — add at least ${rem} more character${rem > 1 ? 's' : ''}. The model needs enough text to identify meaningful patterns.`;
+      error.style.display = 'block';
+      return;
+    }
+    if (!detectLanguage(text)) {
+      error.textContent = 'Please write in English. The model was trained on English text and may produce inaccurate results with other languages.';
+      error.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+
+    try {
+      const response = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      const data = await response.json();
+
+      document.getElementById('mbtiType').textContent = data.mbti_type;
+      document.getElementById('resultSection').style.display = 'block';
+
+      // Populate type info card
+      const info = mbtiInfo[data.mbti_type];
+      if (info) {
+        document.getElementById('typeNickname').textContent = `"${info.nickname}"`;
+        document.getElementById('typeDesc').textContent = info.desc;
+        const famousGrid = document.getElementById('famousGrid');
+        famousGrid.innerHTML = info.famous.map(p =>
+          `<div class="famous-pill"><span class="famous-emoji">${p.emoji}</span>${p.name}</div>`
+        ).join('');
+      }
+      document.getElementById('typeInfoCard').style.display = info ? 'block' : 'none';
+
+      const grid = document.getElementById('dimsGrid');
+      grid.innerHTML = '';
+
+      for (const [dim, info] of Object.entries(data.details)) {
+        const [pos_label, neg_label] = Object.keys(info.probabilities);
+        const prob_pos = info.probabilities[pos_label];
+        const prob_neg = info.probabilities[neg_label];
+        const predicted = info.predicted;
+
+        const posWin = predicted === pos_label;
+
+        grid.innerHTML += `
+          <div class="dim-card">
+            <div class="dim-axis">${pos_label} · ${neg_label}</div>
+            <div class="dim-letter">${predicted}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: ${posWin ? prob_pos : prob_neg}%"></div>
+            </div>
+            <div class="dim-stats">
+              <span class="${posWin ? 'winner' : ''}">${pos_label} ${prob_pos.toFixed(1)}%</span><br/>
+              <span class="${!posWin ? 'winner' : ''}">${neg_label} ${prob_neg.toFixed(1)}%</span>
+            </div>
+          </div>`;
+      }
+
+      btn.style.display = 'none';
+      document.getElementById('resetBtn').style.display = 'block';
+
+    } catch(e) {
+      error.textContent = 'Something went wrong. Please try again.';
+      error.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+    }
+  }
+
+  updateCount();
+
+  // Keep server warm while user has the page open
+  setInterval(() => fetch('/health'), 10 * 60 * 1000);
+  
+</script>
+</body>
+</html>
