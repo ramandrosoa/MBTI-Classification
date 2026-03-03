@@ -1,6 +1,6 @@
 # 🧠 MBTI Personality Predictor
 
-This notebook covers the full pipeline from **exploratory analysis to prediction** — using textual data to classify Myers-Briggs Type Indicator (MBTI) personality types with classical machine learning.
+[This notebook](MBTI_NLP.ipynb) covers the full pipeline from **exploratory analysis to prediction** — using textual data to classify Myers-Briggs Type Indicator (MBTI) personality types with classical machine learning.
 
 🚀 **Live Demo:** https://huggingface.co/spaces/ramandrosoa/mbti-predictor
 
